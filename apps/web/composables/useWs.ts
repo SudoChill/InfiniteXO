@@ -49,6 +49,15 @@ export function useWs() {
         const msg = JSON.parse(ev.data as string)
         if (msg.type === 'tile:update') {
           store.applyTileUpdate(msg.cx, msg.cy, msg.lx, msg.ly, msg.v)
+          if (typeof msg.score === 'number') store.addScore(msg.score)
+        } else if (msg.type === 'presence:update') {
+          store.applyPresence(msg.room, msg.count)
+        } else if (msg.type === 'grid:clear') {
+          // Reset chunks without losing config
+          store.chunks.clear()
+          store.lru = []
+        } else if (msg.type === 'cursor:update') {
+          // TODO: render remote cursors (client-side overlay)
         }
       } catch {}
     }

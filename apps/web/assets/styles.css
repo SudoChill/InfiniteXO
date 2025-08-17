@@ -4,4 +4,9 @@
 
 html, body, #__nuxt { height: 100%; }
 
+/* Nuxt UI dark defaults via daisyUI themes */
+:root {
+  color-scheme: dark;
+}
+
 

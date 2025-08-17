@@ -17,7 +17,9 @@ export const useChunksStore = defineStore('chunks', {
     maxChunks: 256,
     debug: { showChunkBorders: true },
     joinedRooms: new Set<string>(),
-    _sendWs: null as null | ((payload: any) => void)
+    _sendWs: null as null | ((payload: any) => void),
+    presence: new Map<string, number>(),
+    sessionScore: 0
   }),
   actions: {
     _registerWsSender(fn: (payload: any) => void) { this._sendWs = fn },
@@ -25,7 +27,6 @@ export const useChunksStore = defineStore('chunks', {
       return this.chunks.get(`${cx}:${cy}`)
     },
     ensureWindow(rect: { cx0: number, cy0: number, cx1: number, cy1: number }) {
-      const radius = 0
       const req: Array<{ cx: number, cy: number }> = []
       for (let cy = rect.cy0; cy <= rect.cy1; cy++) {
         for (let cx = rect.cx0; cx <= rect.cx1; cx++) {
@@ -38,7 +39,7 @@ export const useChunksStore = defineStore('chunks', {
           }
         }
       }
-      if (req.length) this.fetchChunks(req)
+      if (req.length) this.fetchChunksBatched(rect)
       this.enforceLRU()
     },
     enforceLRU() {
@@ -51,18 +52,16 @@ export const useChunksStore = defineStore('chunks', {
         }
       }
     },
-    async fetchChunks(list: Array<{ cx: number, cy: number }>) {
-      const qs = new URLSearchParams()
-      // batched by simple API per-item, MVP fallback: loop
-      for (const { cx, cy } of list) {
-        qs.set('cx', String(cx))
-        qs.set('cy', String(cy))
-        const res = await $fetch<{ tiles: Array<{ lx: number, ly: number, v: 'X'|'O', updatedAt: number }> }>('/api/chunks', { query: qs })
-        const tiles = res?.tiles || []
-        const key = `${cx}:${cy}`
+    async fetchChunksBatched(rect: { cx0: number, cy0: number, cx1: number, cy1: number }) {
+      const centerCx = Math.trunc((rect.cx0 + rect.cx1) / 2)
+      const centerCy = Math.trunc((rect.cy0 + rect.cy1) / 2)
+      const radius = Math.max(centerCx - rect.cx0, rect.cx1 - centerCx, centerCy - rect.cy0, rect.cy1 - centerCy)
+      const res = await $fetch<{ data: Array<{ cx: number, cy: number, tiles: Array<{ lx: number, ly: number, v: 'X'|'O', updatedAt: number }> }> }>('/api/chunks', { query: { cx: centerCx, cy: centerCy, radius } })
+      for (const item of (res?.data || [])) {
+        const key = `${item.cx}:${item.cy}`
         const map = new Map<string, TileEntry>()
-        for (const t of tiles) map.set(keyFor(t.lx, t.ly), t)
-        this.chunks.set(key, { cx, cy, tiles: map })
+        for (const t of item.tiles) map.set(keyFor(t.lx, t.ly), t)
+        this.chunks.set(key, { cx: item.cx, cy: item.cy, tiles: map })
         this.touch(key)
       }
     },
@@ -82,6 +81,12 @@ export const useChunksStore = defineStore('chunks', {
       chunk.tiles.set(keyFor(lx, ly), entry)
       this.touch(key)
     },
+    addScore(delta: number) {
+      this.sessionScore += delta
+    },
+    applyPresence(room: string, count: number) {
+      this.presence.set(room, count)
+    },
     async placeAtGlobal(tx: number, ty: number) {
       const cx = Math.floor(tx / this.chunkSize)
       const cy = Math.floor(ty / this.chunkSize)
@@ -90,7 +95,9 @@ export const useChunksStore = defineStore('chunks', {
       // optimistic
       this.applyTileUpdate(cx, cy, lx, ly, this.value)
       try {
-        const res = await $fetch('/api/place', { method: 'POST', body: { x: tx, y: ty, v: this.value } })
+        const session = useNuxtApp().$pinia.state.value['session'] as any
+        const actorId = session?.actorId || ''
+        const res = await $fetch('/api/place', { method: 'POST', body: { x: tx, y: ty, v: this.value, actorId } })
         // @ts-expect-error
         const t = res.tile
         if (t) this.applyTileUpdate(t.cx, t.cy, t.lx, t.ly, t.v)

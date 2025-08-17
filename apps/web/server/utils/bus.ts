@@ -16,7 +16,9 @@ class EventBus<TMap extends Record<string, any>> {
 }
 
 export interface EventsMap {
-  'tile:update': { cx: number; cy: number; lx: number; ly: number; v: 'X' | 'O'; actorId?: string; ts: number }
+  'tile:update': { cx: number; cy: number; lx: number; ly: number; v: 'X' | 'O'; actorId?: string; ts: number; score?: number }
+  'grid:clear': { ts: number }
+  'cursor:update': { room: string; actorId: string; name?: string; x: number; y: number; ts: number }
 }
 
 export const bus = new EventBus<EventsMap>()

@@ -4,9 +4,10 @@ import { chunks, tiles } from '../../drizzle/schema'
 import { and, eq } from 'drizzle-orm'
 import { bus } from '../utils/bus'
 import { rateLimit } from '../utils/rateLimit'
+import { createdStreak } from '../utils/grid'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ x: number; y: number; v: 'X' | 'O' }>(event)
+  const body = await readBody<{ x: number; y: number; v: 'X' | 'O'; actorId?: string; name?: string }>(event)
   const cs = Number(process.env.CHUNK_SIZE || 128)
   const ip = getRequestIP(event) || 'anon'
   if (!rateLimit(ip)) return { error: 'rate_limited' }
@@ -42,10 +43,16 @@ export default defineEventHandler(async (event) => {
     await db.insert(tiles).values({ chunkId: chunk.id!, lx, ly, v: body.v, updatedAt: String(Date.now()) })
   }
 
-  const payload = { type: 'tile:update', cx, cy, lx, ly, v: body.v, ts: Date.now() }
+  const payload = { type: 'tile:update', cx, cy, lx, ly, v: body.v, ts: Date.now(), actorId: body.actorId }
   bus.emit('tile:update', payload)
 
-  return { tile: { cx, cy, lx, ly, v: body.v, ts: Date.now() } }
+  // scoring: 3-in-a-row grants a point
+  const streak = await createdStreak(tx, ty, body.v)
+  if (streak) {
+    bus.emit('tile:update', { ...payload, score: 1 })
+  }
+
+  return { tile: { cx, cy, lx, ly, v: body.v, ts: Date.now(), actorId: body.actorId }, streak }
 })
 
 

@@ -1,6 +1,8 @@
 <template>
   <div data-theme="candy" class="min-h-screen bg-base-100 text-base-content">
-    <NuxtPage />
+    <UApp>
+      <NuxtPage />
+    </UApp>
   </div>
 </template>
 
