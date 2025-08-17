@@ -8,11 +8,17 @@ import { useChunksStore } from '~/stores/chunks'
 import { useInput } from '~/composables/useInput'
 import { useWs } from '~/composables/useWs'
 import { useSessionStore } from '~/stores/session'
+// remove duplicate import
+import { useSfx } from '~/composables/useSfx'
+import { useUiStore } from '~/stores/ui'
 
 const store = useChunksStore()
 const { pan, zoom, attach, detach, screenToWorld, worldToChunk } = useInput()
 useWs()
 const session = useSessionStore()
+const storeState = useChunksStore()
+const { place } = useSfx()
+const ui = useUiStore()
 
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
@@ -24,7 +30,7 @@ function resize() {
   const { clientWidth, clientHeight } = canvasEl.value
   canvasEl.value.width = Math.floor(clientWidth * dpr)
   canvasEl.value.height = Math.floor(clientHeight * dpr)
-  ctx?.scale(dpr, dpr)
+  ctx?.setTransform(dpr, 0, 0, dpr, 0, 0)
 }
 
 function draw() {
@@ -78,6 +84,55 @@ function draw() {
     }
   }
 
+  // Highlight any session 3x3 anchors (simple visualization)
+  for (const s of storeState.sessions ? storeState.sessions.values() : []) {
+    const ss: any = s
+    if (typeof ss.tx !== 'number' || typeof ss.ty !== 'number') continue
+    const worldX = ss.tx * tileSize + pan.x
+    const worldY = ss.ty * tileSize + pan.y
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.9)'
+    ctx.lineWidth = 2
+    ctx.strokeRect(worldX - tileSize, worldY - tileSize, tileSize * 3, tileSize * 3)
+  }
+
+  // Draw active match overlay (XO board)
+  if (ui.activeMatch) {
+    const { tx, ty, board } = ui.activeMatch
+    const startX = tx * tileSize + pan.x - tileSize
+    const startY = ty * tileSize + pan.y - tileSize
+    ctx.strokeStyle = 'rgba(34,197,94,0.9)'
+    ctx.lineWidth = 3
+    // grid lines
+    for (let i=1;i<3;i++) {
+      ctx.beginPath(); ctx.moveTo(startX + i*tileSize, startY); ctx.lineTo(startX + i*tileSize, startY + 3*tileSize); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(startX, startY + i*tileSize); ctx.lineTo(startX + 3*tileSize, startY + i*tileSize); ctx.stroke()
+    }
+    // marks
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${Math.floor(tileSize*0.8)}px ui-sans-serif`
+    for (let i=0;i<9;i++) {
+      const col = i % 3, row = Math.floor(i/3)
+      const val = board[i]
+      if (!val) continue
+      ctx.fillStyle = val === 'X' ? '#60a5fa' : '#f472b6'
+      ctx.fillText(val, startX + col*tileSize + tileSize/2, startY + row*tileSize + tileSize/2)
+    }
+  }
+
+  // Draw remote cursors
+  store.purgeOldCursors()
+  for (const [id, c] of store.cursors) {
+    const worldX = (Math.floor(c.tx) * tileSize) + pan.x
+    const worldY = (Math.floor(c.ty) * tileSize) + pan.y
+    if (worldX < -tileSize || worldY < -tileSize || worldX > cssW + tileSize || worldY > cssH + tileSize) continue
+    ctx.strokeStyle = '#22d3ee'
+    ctx.strokeRect(worldX, worldY, tileSize - 1, tileSize - 1)
+    if (c.name) {
+      ctx.fillStyle = 'rgba(34,211,238,0.8)'
+      ctx.font = '12px ui-sans-serif'
+      ctx.fillText(c.name, worldX + 4, worldY - 4)
+    }
+  }
+
   rafId = requestAnimationFrame(draw)
 }
 
@@ -90,6 +145,7 @@ function onClick(ev: MouseEvent) {
   const tx = Math.floor((world.x - pan.x) / tileSize)
   const ty = Math.floor((world.y - pan.y) / tileSize)
   store.placeAtGlobal(tx, ty)
+  place()
 }
 
 function onMouseMove(ev: MouseEvent) {

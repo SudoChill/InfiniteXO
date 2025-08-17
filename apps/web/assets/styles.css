@@ -3,6 +3,26 @@
 @tailwind utilities;
 
 html, body, #__nuxt { height: 100%; }
+html, body, #__nuxt { overflow: hidden; overscroll-behavior: none; }
+
+/* prevent page scroll on mobile while allowing canvas gestures */
+body { touch-action: none; }
+
+/* PWA safe-area helpers */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+}
+.safe-area {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+.mb-safe { margin-bottom: var(--safe-bottom); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
 
 /* Nuxt UI dark defaults via daisyUI themes */
 :root {

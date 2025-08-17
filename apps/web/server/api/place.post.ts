@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm'
 import { bus } from '../utils/bus'
 import { rateLimit } from '../utils/rateLimit'
 import { createdStreak } from '../utils/grid'
+import { incrementTeamScore } from '../utils/score'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ x: number; y: number; v: 'X' | 'O'; actorId?: string; name?: string }>(event)
@@ -50,6 +51,8 @@ export default defineEventHandler(async (event) => {
   const streak = await createdStreak(tx, ty, body.v)
   if (streak) {
     bus.emit('tile:update', { ...payload, score: 1 })
+    const totals = incrementTeamScore(body.v, 1)
+    bus.emit('score:update', { ...totals, ts: Date.now() })
   }
 
   return { tile: { cx, cy, lx, ly, v: body.v, ts: Date.now(), actorId: body.actorId }, streak }

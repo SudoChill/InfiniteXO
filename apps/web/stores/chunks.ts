@@ -19,7 +19,10 @@ export const useChunksStore = defineStore('chunks', {
     joinedRooms: new Set<string>(),
     _sendWs: null as null | ((payload: any) => void),
     presence: new Map<string, number>(),
-    sessionScore: 0
+    sessionScore: 0,
+    teamScore: { X: 0, O: 0 } as { X: number, O: number },
+    cursors: new Map<string, { tx: number, ty: number, name?: string, ts: number }>(),
+    sessions: new Map<string, { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number }>()
   }),
   actions: {
     _registerWsSender(fn: (payload: any) => void) { this._sendWs = fn },
@@ -83,6 +86,19 @@ export const useChunksStore = defineStore('chunks', {
     },
     addScore(delta: number) {
       this.sessionScore += delta
+    },
+    updateCursor(actorId: string, tx: number, ty: number, name?: string) {
+      this.cursors.set(actorId, { tx, ty, name, ts: Date.now() })
+    },
+    purgeOldCursors(maxAgeMs = 4000) {
+      const now = Date.now()
+      for (const [id, c] of this.cursors) if (now - c.ts > maxAgeMs) this.cursors.delete(id)
+    },
+    setTeamScore(scores: { X: number, O: number }) {
+      this.teamScore = scores
+    },
+    upsertSession(s: { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number }) {
+      this.sessions.set(s.id, s)
     },
     applyPresence(room: string, count: number) {
       this.presence.set(room, count)

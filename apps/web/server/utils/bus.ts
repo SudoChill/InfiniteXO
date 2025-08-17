@@ -19,6 +19,9 @@ export interface EventsMap {
   'tile:update': { cx: number; cy: number; lx: number; ly: number; v: 'X' | 'O'; actorId?: string; ts: number; score?: number }
   'grid:clear': { ts: number }
   'cursor:update': { room: string; actorId: string; name?: string; x: number; y: number; ts: number }
+  'score:update': { X: number; O: number; ts: number }
+  'session:create': { id: string; kind: string; name?: string; cx: number; cy: number; width: number; height: number; ts: number }
+  'session:ready': { id: string; players: [string, string]; assign: Record<string, 'X'|'O'>; tx: number; ty: number; ts: number }
 }
 
 export const bus = new EventBus<EventsMap>()

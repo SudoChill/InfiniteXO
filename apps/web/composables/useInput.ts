@@ -17,6 +17,14 @@ export function useInput() {
     let vy = 0
     let raf = 0
     let spaceDown = false
+    let touchId: number | null = null
+    let lastTouchX = 0
+    let lastTouchY = 0
+    let pinchActive = false
+    let pinchStartDist = 0
+    let pinchStartZoom = 1
+    let pinchAnchorX = 0
+    let pinchAnchorY = 0
 
     function onMouseDown(e: MouseEvent) {
       // Pan with right mouse or Space+Left
@@ -99,6 +107,55 @@ export function useInput() {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     el.addEventListener('contextmenu', onContextMenu)
+
+    // Mobile touch drag (two-finger to pan, pinch zoom optional later)
+    el.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        const t0 = e.touches.item(0), t1 = e.touches.item(1)
+        if (!t0 || !t1) return
+        pinchActive = true
+        pinchStartDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
+        pinchStartZoom = zoom.value
+        pinchAnchorX = (t0.clientX + t1.clientX) / 2
+        pinchAnchorY = (t0.clientY + t1.clientY) / 2
+      } else if (e.touches.length === 1) {
+        const t = e.touches.item(0)
+        if (!t) return
+        touchId = t.identifier
+        lastTouchX = t.clientX
+        lastTouchY = t.clientY
+      }
+    }, { passive: true })
+    el.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && pinchActive) {
+        const t0 = e.touches.item(0), t1 = e.touches.item(1)
+        if (!t0 || !t1) return
+        const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
+        if (pinchStartDist <= 0) return
+        const scale = dist / pinchStartDist
+        const newZoom = Math.min(3, Math.max(0.2, pinchStartZoom * scale))
+        const oldTile = Math.max(4, 18 * zoom.value)
+        const newTile = Math.max(4, 18 * newZoom)
+        // keep anchor stable
+        pan.x = pinchAnchorX - (pinchAnchorX - pan.x) * (newTile / oldTile)
+        pan.y = pinchAnchorY - (pinchAnchorY - pan.y) * (newTile / oldTile)
+        zoom.value = newZoom
+        return
+      }
+      if (touchId === null) return
+      const t = Array.from(e.touches).find(t => t.identifier === touchId)
+      if (!t) return
+      const dx = t.clientX - lastTouchX
+      const dy = t.clientY - lastTouchY
+      pan.x += dx
+      pan.y += dy
+      lastTouchX = t.clientX
+      lastTouchY = t.clientY
+    }, { passive: true })
+    el.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) pinchActive = false
+      if (e.touches.length === 0) touchId = null
+    })
   }
 
   function detach(_el: HTMLElement) {
