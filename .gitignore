@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.local
+
+# Node
+node_modules/
+
+# Nuxt outputs
+.nuxt/
+.output/
+apps/web/.nuxt/
+apps/web/.output/
+
+# SQLite data
+.data/
+apps/web/.data/
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+
+# Tooling caches
+.eslintcache
+.vite/
+.cache/
+
+
