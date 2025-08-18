@@ -64,6 +64,21 @@ bus.on('session:create', (e) => {
 })
 
 bus.on('session:ready', (e: any) => {
+	// Initialize a match for session-based XO using session id as match id
+	if (e && e.id && e.players && e.assign) {
+		const id = String(e.id)
+		if (!matches.has(id)) {
+			const match: Match = {
+				id,
+				at: { tx: Number(e.tx) || 0, ty: Number(e.ty) || 0 },
+				players: e.players as [string, string],
+				assign: e.assign as Record<string, 'X'|'O'>,
+				board: Array(9).fill(null),
+				turn: 'X'
+			}
+			matches.set(id, match)
+		}
+	}
 	const data = JSON.stringify({ type: 'session:ready', ...e })
 	for (const p of allPeers) { try { p.send(data) } catch {} }
 })

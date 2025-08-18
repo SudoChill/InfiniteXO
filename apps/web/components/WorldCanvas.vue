@@ -211,6 +211,23 @@ function onClick(ev: MouseEvent) {
   const tileSize = Math.max(4, 18 * zoom.value)
   const tx = Math.floor((world.x - pan.x) / tileSize)
   const ty = Math.floor((world.y - pan.y) / tileSize)
+  // If XO match active and click is inside 3x3, send match:move when it's my turn
+  if (ui.activeMatch) {
+    const { tx: atx, ty: aty, myRole, turn, id } = ui.activeMatch as any
+    const startX = atx - 1
+    const startY = aty - 1
+    const col = tx - startX
+    const row = ty - startY
+    if (col >= 0 && col < 3 && row >= 0 && row < 3) {
+      if (myRole && turn === myRole) {
+        const cell = row * 3 + col
+        // @ts-ignore internal ws sender
+        store._sendWs?.({ type: 'match:move', id, cell, actorId: session.actorId })
+      }
+      return
+    }
+  }
+  // Otherwise place global tile
   store.placeAtGlobal(tx, ty)
   place()
 }
