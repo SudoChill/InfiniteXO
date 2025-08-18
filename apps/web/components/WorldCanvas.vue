@@ -23,6 +23,7 @@ const ui = useUiStore()
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
 let rafId = 0
+let pulseUntil = 0
 
 function resize() {
   if (!canvasEl.value) return
@@ -146,8 +147,26 @@ function draw() {
   // Draw active match overlay (XO board)
   if (ui.activeMatch) {
     const { tx, ty, board } = ui.activeMatch
+    // Auto-center once when match becomes ready
+    if (ui.activeMatch.centerPending) {
+      const centerTargetX = (tx + 0.5) * tileSize
+      const centerTargetY = (ty + 0.5) * tileSize
+      const cssW = width / (window.devicePixelRatio || 1)
+      const cssH = height / (window.devicePixelRatio || 1)
+      pan.x = Math.round((cssW / 2) - centerTargetX)
+      pan.y = Math.round((cssH / 2) - centerTargetY)
+      ui.activeMatch.centerPending = false
+      pulseUntil = performance.now() + 2000
+    }
     const startX = tx * tileSize + pan.x - tileSize
     const startY = ty * tileSize + pan.y - tileSize
+    // pulsing highlight when just centered
+    if (pulseUntil > performance.now()) {
+      const phase = (pulseUntil - performance.now()) / 2000
+      const alpha = 0.08 + 0.12 * Math.abs(Math.sin((1 - phase) * Math.PI * 2))
+      ctx.fillStyle = `rgba(34,197,94,${alpha})`
+      ctx.fillRect(startX, startY, tileSize * 3, tileSize * 3)
+    }
     ctx.strokeStyle = 'rgba(34,197,94,0.9)'
     ctx.lineWidth = 3
     // grid lines

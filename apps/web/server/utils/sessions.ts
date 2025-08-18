@@ -30,6 +30,7 @@ export function leaveAllSessions(actorId: string) {
       continue
     }
     if (s.members.has(actorId)) s.members.delete(actorId)
+    if (!s.hostId && s.members.size === 0) sessions.delete(id)
   }
 }
 
@@ -76,6 +77,12 @@ export function joinSession(id: string, actorId: string) {
 export function leaveSession(id: string, actorId: string) {
   const s = sessions.get(id); if (!s) return null
   s.members.delete(actorId)
+  // if no host and no members, delete session
+  const hostPresent = !!s.hostId
+  if (!hostPresent && s.members.size === 0) {
+    sessions.delete(id)
+    return null
+  }
   return s
 }
 
