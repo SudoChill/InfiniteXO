@@ -1,14 +1,12 @@
 <template>
-  <div class="flex flex-col h-full safe-area">
-    <div class="absolute left-4 top-4 flex gap-2 pointer-events-auto">
-      <button class="btn btn-xs" @click="showStats=!showStats">Stats</button>
-      <button class="btn btn-xs" @click.stop="clearAll">Reset</button>
-    </div>
-    <div v-if="showStats" class="absolute left-4 top-12 bg-base-200/90 p-2 rounded text-xs pointer-events-auto">
+  <div class="flex flex-col h-full safe-area mt-24">
+    <!-- Responsive stats panel (toggled from toolbar) -->
+    <div v-if="showStats" class="absolute md:right-4 md:top-20 right-2 left-2 bottom-24 md:bottom-auto bg-base-200/90 p-2 rounded text-xs pointer-events-auto z-20">
       <div>Chunk {{ cx }}, {{ cy }}</div>
       <div>FPS {{ fps }}</div>
       <div>Coords {{ coords.x }}, {{ coords.y }}</div>
       <div>Team X: {{ team.X }} / O: {{ team.O }} | You: {{ score }}</div>
+      <div>Nearby players: {{ nearby }}</div>
     </div>
     <!-- Floating Panel: Players / Sessions -->
     <div class="absolute md:right-4 md:bottom-4 md:w-80 md:rounded md:p-2 md:bg-base-200/80 pointer-events-auto w-[calc(100%-1rem)] left-2 right-2 bottom-2 bg-base-200/90 rounded-lg p-2 pb-safe">
@@ -96,12 +94,6 @@ function jump(e: MouseEvent) {
   const dy = Math.round(py * 10)
   cx.value += dx
   cy.value += dy
-}
-
-async function clearAll() {
-  try {
-    await $fetch('/api/clear', { method: 'POST', body: { scope: 'all' } })
-  } catch {}
 }
 
 function challenge(p: { actorId: string, name?: string }) {
