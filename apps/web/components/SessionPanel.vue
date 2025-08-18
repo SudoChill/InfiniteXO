@@ -10,7 +10,7 @@
         <span class="font-semibold">Status:</span>
         <span v-if="ui.joinedSessionId" class="badge badge-success badge-sm">In session</span>
         <span v-else class="badge badge-ghost badge-sm">Not in a session</span>
-        <span v-if="joinedCount>0" class="opacity-70">• {{ joinedCount }} player(s)</span>
+        <span v-if="joinedFraction" class="opacity-70">• {{ joinedFraction }}</span>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs flex items-center gap-1"><input type="checkbox" class="checkbox checkbox-xs" v-model="showAll"/> Show all</label>
@@ -21,7 +21,7 @@
     <!-- Nearby list -->
     <div class="mt-2 space-y-2 max-h-40 overflow-auto">
       <div v-for="s in sessionList" :key="s.id" class="flex items-center justify-between bg-base-300 rounded p-2">
-        <div class="text-xs">XO • {{ s.name || s.id.slice(0,6) }} • {{ s.count || 0 }} players</div>
+        <div class="text-xs">XO • {{ s.name || s.id.slice(0,6) }} • {{ filledOfTwo(s) }}</div>
         <div class="flex items-center gap-2">
           <button v-if="ui.joinedSessionId!==s.id" class="btn btn-ghost btn-xs" @click="join(s)">Join</button>
           <button v-else disabled class="btn btn-ghost btn-xs">Joined</button>
@@ -96,12 +96,21 @@ onUnmounted(() => clearInterval(timer))
 
 const ui = useUiStore()
 const { pan } = useInput()
-const joinedCount = computed(() => {
+const joinedFraction = computed(() => {
   const id = ui.joinedSessionId
-  if (!id) return 0
-  const s = store.sessions.get(id as string) as any
-  return (s && typeof s.count === 'number') ? s.count : 0
+  if (!id) return ''
+  const s: any = store.sessions.get(id)
+  const members = (s && typeof s.count === 'number') ? s.count : 0
+  const host = s?.hostId ? 1 : 0
+  const filled = Math.max(1, Math.min(2, members + host))
+  return `${filled}/2`
 })
+function filledOfTwo(s: any) {
+  const members = typeof s?.count === 'number' ? s.count : 0
+  const host = s?.hostId ? 1 : 0
+  const filled = Math.max(1, Math.min(2, members + host))
+  return `${filled}/2`
+}
 function join(s: any) {
   ui.setJoinedSession(s.id)
   // center camera to approx location

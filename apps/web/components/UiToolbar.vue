@@ -23,7 +23,7 @@
       <div v-if="ui.joinedSessionId" class="mt-2 flex items-center justify-between text-xs bg-base-300 rounded px-2 py-1">
         <div>
           In session: <span class="font-medium">{{ sessionName }}</span>
-          <span v-if="sessionCount>=0" class="opacity-70 ml-1">({{ sessionCount }} players)</span>
+          <span class="opacity-70 ml-1">({{ sessionFilled }}/2)</span>
         </div>
         <button class="btn btn-ghost btn-xs" @click="leaveSession">Leave</button>
       </div>
@@ -93,6 +93,13 @@ const sessionCount = computed(() => {
   if (!ui.joinedSessionId) return -1
   const s = store.sessions.get(ui.joinedSessionId) as any
   return typeof s?.count === 'number' ? s.count : -1
+})
+const sessionFilled = computed(() => {
+  if (!ui.joinedSessionId) return 0
+  const s: any = store.sessions.get(ui.joinedSessionId)
+  const members = typeof s?.count === 'number' ? s.count : 0
+  const host = s?.hostId ? 1 : 0
+  return Math.max(1, Math.min(2, members + host))
 })
 async function leaveSession() {
   try {
