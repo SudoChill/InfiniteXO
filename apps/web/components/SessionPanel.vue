@@ -3,32 +3,46 @@
     <div v-if="banner" class="alert alert-success py-2 mb-2 text-xs">
       {{ banner }}
     </div>
-    <div class="flex items-center justify-between">
-      <div class="font-semibold text-sm">Nearby Sessions</div>
+
+    <!-- Status row -->
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-xs">
+        <span class="font-semibold">Status:</span>
+        <span v-if="ui.joinedSessionId" class="badge badge-success badge-sm ml-1">In session</span>
+        <span v-else class="badge badge-ghost badge-sm ml-1">Not in a session</span>
+      </div>
       <div class="flex items-center gap-2">
         <label class="text-xs flex items-center gap-1"><input type="checkbox" class="checkbox checkbox-xs" v-model="showAll"/> Show all</label>
         <button class="btn btn-xs" @click="refresh">Refresh</button>
       </div>
     </div>
+
+    <!-- Nearby list -->
     <div class="mt-2 space-y-2 max-h-40 overflow-auto">
       <div v-for="s in sessionList" :key="s.id" class="flex items-center justify-between bg-base-300 rounded p-2">
-        <div class="text-xs">{{ s.kind }} • {{ s.name || s.id.slice(0,6) }} • {{ s.count }} players</div>
-        <button class="btn btn-ghost btn-xs" @click="join(s)">Join</button>
+        <div class="text-xs">XO • {{ s.name || s.id.slice(0,6) }} • {{ s.count }} players</div>
+        <div class="flex items-center gap-2">
+          <button v-if="ui.joinedSessionId!==s.id" class="btn btn-ghost btn-xs" @click="join(s)">Join</button>
+          <button v-else disabled class="btn btn-ghost btn-xs">Joined</button>
+        </div>
       </div>
-      <div v-if="!sessions.length" class="text-xs opacity-70">No sessions nearby.</div>
+      <div v-if="!sessionList.length" class="text-xs opacity-70">No sessions nearby.</div>
     </div>
+
     <div class="divider my-2"></div>
-    <div class="text-xs font-semibold mb-2">Create</div>
+
+    <!-- Create / Leave -->
     <div class="flex items-center gap-2 flex-wrap">
-      <select v-model="kind" class="select select-xs w-24">
-        <option value="ttt">TTT</option>
-        <option value="mine">Mines</option>
-        <option value="xo-battle">XO Battle</option>
-      </select>
-      <input v-model="name" class="input input-xs input-bordered flex-1 min-w-[140px]" placeholder="Name (optional)" />
-      <button class="btn btn-primary btn-xs" @click="create">Create / Update</button>
+      <input v-model="name" class="input input-xs input-bordered flex-1 min-w-[140px]" placeholder="Session name (optional)" />
+      <button class="btn btn-primary btn-xs" :disabled="ui.joinedSessionId!==null" @click="create">Create & Join</button>
+      <button class="btn btn-ghost btn-xs" :disabled="ui.joinedSessionId===null" @click="leave">Leave</button>
+    </div>
+
+    <div class="mt-2 text-[11px] opacity-70">
+      Tip: Open two browser windows nearby the same area. Create a session on one, then Join from the other.
     </div>
   </div>
+  
 </template>
 
 <script setup lang="ts">
@@ -48,7 +62,8 @@ const sessionList = computed(() => {
   for (const s of [...fromStore, ...local]) map.set(s.id, s)
   return Array.from(map.values())
 })
-const kind = ref<'ttt'|'mine'|'xo-battle'>('ttt')
+// Only XO (ttt) for now
+const kind = ref<'ttt'>('ttt')
 const name = ref('')
 const showAll = ref(false)
 const banner = ref('')
@@ -68,6 +83,9 @@ async function create() {
   const [cx, cy] = worldToChunk(window.innerWidth / 2, window.innerHeight / 2)
   const res = await $fetch<{ id: string }>('/api/sessions', { method: 'POST', body: { kind: kind.value, name: name.value, cx, cy, hostId: session.actorId } })
   await refresh()
+  // Auto-join the created session
+  const created = sessionList.value.find(s => s.id === res.id)
+  if (created) join(created)
   banner.value = 'Session created'
   setTimeout(() => (banner.value = ''), 2500)
 }
@@ -84,6 +102,15 @@ function join(s: any) {
   pan.y = -(s.cy * 128 * 18)
   banner.value = 'Joined ' + (s.name || s.id.slice(0,6))
   setTimeout(() => (banner.value = ''), 2000)
+}
+async function leave() {
+  try {
+    session.init()
+    await $fetch('/api/clear', { method: 'POST', body: { scope: 'mine', actorId: session.actorId } })
+  } catch {}
+  ui.setJoinedSession(null)
+  banner.value = 'Left session'
+  setTimeout(() => (banner.value = ''), 1500)
 }
 </script>
 
