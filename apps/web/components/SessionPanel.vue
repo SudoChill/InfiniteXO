@@ -6,10 +6,11 @@
 
     <!-- Status row -->
     <div class="flex items-center justify-between mb-2">
-      <div class="text-xs">
+      <div class="text-xs flex items-center gap-2">
         <span class="font-semibold">Status:</span>
-        <span v-if="ui.joinedSessionId" class="badge badge-success badge-sm ml-1">In session</span>
-        <span v-else class="badge badge-ghost badge-sm ml-1">Not in a session</span>
+        <span v-if="ui.joinedSessionId" class="badge badge-success badge-sm">In session</span>
+        <span v-else class="badge badge-ghost badge-sm">Not in a session</span>
+        <span v-if="joinedCount>0" class="opacity-70">• {{ joinedCount }} player(s)</span>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs flex items-center gap-1"><input type="checkbox" class="checkbox checkbox-xs" v-model="showAll"/> Show all</label>
@@ -20,7 +21,7 @@
     <!-- Nearby list -->
     <div class="mt-2 space-y-2 max-h-40 overflow-auto">
       <div v-for="s in sessionList" :key="s.id" class="flex items-center justify-between bg-base-300 rounded p-2">
-        <div class="text-xs">XO • {{ s.name || s.id.slice(0,6) }} • {{ s.count }} players</div>
+        <div class="text-xs">XO • {{ s.name || s.id.slice(0,6) }} • {{ s.count || 0 }} players</div>
         <div class="flex items-center gap-2">
           <button v-if="ui.joinedSessionId!==s.id" class="btn btn-ghost btn-xs" @click="join(s)">Join</button>
           <button v-else disabled class="btn btn-ghost btn-xs">Joined</button>
@@ -95,6 +96,12 @@ onUnmounted(() => clearInterval(timer))
 
 const ui = useUiStore()
 const { pan } = useInput()
+const joinedCount = computed(() => {
+  const id = ui.joinedSessionId
+  if (!id) return 0
+  const s = store.sessions.get(id as string) as any
+  return (s && typeof s.count === 'number') ? s.count : 0
+})
 function join(s: any) {
   ui.setJoinedSession(s.id)
   // center camera to approx location

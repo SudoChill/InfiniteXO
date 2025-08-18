@@ -22,7 +22,7 @@ export const useChunksStore = defineStore('chunks', {
     sessionScore: 0,
     teamScore: { X: 0, O: 0 } as { X: number, O: number },
     cursors: new Map<string, { tx: number, ty: number, name?: string, ts: number }>(),
-    sessions: new Map<string, { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number }>()
+    sessions: new Map<string, { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number, tx?: number, ty?: number, count?: number }>()
   }),
   actions: {
     _registerWsSender(fn: (payload: any) => void) { this._sendWs = fn },
@@ -97,7 +97,7 @@ export const useChunksStore = defineStore('chunks', {
     setTeamScore(scores: { X: number, O: number }) {
       this.teamScore = scores
     },
-    upsertSession(s: { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number }) {
+    upsertSession(s: { id: string, kind: string, name?: string, cx: number, cy: number, width: number, height: number, tx?: number, ty?: number, count?: number }) {
       this.sessions.set(s.id, s)
     },
     applyPresence(room: string, count: number) {

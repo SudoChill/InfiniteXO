@@ -90,9 +90,24 @@ function draw() {
     if (typeof ss.tx !== 'number' || typeof ss.ty !== 'number') continue
     const worldX = ss.tx * tileSize + pan.x
     const worldY = ss.ty * tileSize + pan.y
-    ctx.strokeStyle = 'rgba(250, 204, 21, 0.9)'
-    ctx.lineWidth = 2
+    // faint outline for all sessions
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.6)'
+    ctx.lineWidth = 1.5
     ctx.strokeRect(worldX - tileSize, worldY - tileSize, tileSize * 3, tileSize * 3)
+  }
+
+  // Highlight joined session area with a faded rectangle
+  if (ui.joinedSessionId) {
+    const s: any = storeState.sessions.get(ui.joinedSessionId)
+    if (s && typeof s.tx === 'number' && typeof s.ty === 'number') {
+      const worldX = s.tx * tileSize + pan.x
+      const worldY = s.ty * tileSize + pan.y
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.08)'
+      ctx.fillRect(worldX - tileSize, worldY - tileSize, tileSize * 3, tileSize * 3)
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.95)'
+      ctx.lineWidth = 2.5
+      ctx.strokeRect(worldX - tileSize, worldY - tileSize, tileSize * 3, tileSize * 3)
+    }
   }
 
   // Draw active match overlay (XO board)
