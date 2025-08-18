@@ -19,6 +19,14 @@
         <label class="flex items-center gap-1 text-xs"><input type="checkbox" class="toggle toggle-xs" v-model="store.debug.showChunkBorders"/> Grid</label>
         <label v-if="mounted" class="flex items-center gap-1 text-xs"><input type="checkbox" class="toggle toggle-xs" :checked="sfx.enabled.value" @change="onSfxToggle"/> SFX</label>
       </div>
+      <!-- Session status chip -->
+      <div v-if="ui.joinedSessionId" class="mt-2 flex items-center justify-between text-xs bg-base-300 rounded px-2 py-1">
+        <div>
+          In session: <span class="font-medium">{{ sessionName }}</span>
+          <span v-if="sessionCount>=0" class="opacity-70 ml-1">({{ sessionCount }} players)</span>
+        </div>
+        <button class="btn btn-ghost btn-xs" @click="leaveSession">Leave</button>
+      </div>
     </div>
   </div>
   
@@ -74,6 +82,25 @@ const mounted = ref(false)
 // debug log for Create/Join
 function onSfxToggle(e: Event) { console.debug('[ui] sfx toggle'); sfx.setEnabled((e.target as HTMLInputElement).checked) }
 function toggleStats() { window.dispatchEvent(new CustomEvent('xo:toggle-stats')) }
+
+// Session chip computed data and leave handler
+const sessionName = computed(() => {
+  if (!ui.joinedSessionId) return ''
+  const s = store.sessions.get(ui.joinedSessionId)
+  return s?.name || (ui.joinedSessionId?.slice(0, 6) ?? '')
+})
+const sessionCount = computed(() => {
+  if (!ui.joinedSessionId) return -1
+  const s = store.sessions.get(ui.joinedSessionId) as any
+  return typeof s?.count === 'number' ? s.count : -1
+})
+async function leaveSession() {
+  try {
+    session.init()
+    await $fetch('/api/clear', { method: 'POST', body: { scope: 'mine', actorId: session.actorId } })
+  } catch {}
+  ui.setJoinedSession(null)
+}
 </script>
 
 

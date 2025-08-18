@@ -107,6 +107,39 @@ function draw() {
       ctx.strokeStyle = 'rgba(250, 204, 21, 0.95)'
       ctx.lineWidth = 2.5
       ctx.strokeRect(worldX - tileSize, worldY - tileSize, tileSize * 3, tileSize * 3)
+
+      // Off-screen indicator: draw a chevron pointing toward the session if it's out of view
+      const cssW = canvasEl.value!.width / (window.devicePixelRatio || 1)
+      const cssH = canvasEl.value!.height / (window.devicePixelRatio || 1)
+      const rectX = worldX - tileSize
+      const rectY = worldY - tileSize
+      const rectW = tileSize * 3
+      const rectH = tileSize * 3
+      const isOffscreen = rectX + rectW < 0 || rectY + rectH < 0 || rectX > cssW || rectY > cssH
+      if (isOffscreen) {
+        // Vector from screen center to session center
+        const centerX = cssW / 2
+        const centerY = cssH / 2
+        const targetX = rectX + rectW / 2
+        const targetY = rectY + rectH / 2
+        const dx = targetX - centerX
+        const dy = targetY - centerY
+        const angle = Math.atan2(dy, dx)
+        const radius = Math.min(centerX, centerY) - 16
+        const tipX = centerX + Math.cos(angle) * radius
+        const tipY = centerY + Math.sin(angle) * radius
+        const leftX = centerX + Math.cos(angle + Math.PI * 0.85) * 18
+        const leftY = centerY + Math.sin(angle + Math.PI * 0.85) * 18
+        const rightX = centerX + Math.cos(angle - Math.PI * 0.85) * 18
+        const rightY = centerY + Math.sin(angle - Math.PI * 0.85) * 18
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.9)'
+        ctx.beginPath()
+        ctx.moveTo(tipX, tipY)
+        ctx.lineTo(leftX, leftY)
+        ctx.lineTo(rightX, rightY)
+        ctx.closePath()
+        ctx.fill()
+      }
     }
   }
 

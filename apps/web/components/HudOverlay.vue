@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full safe-area mt-24">
     <!-- Responsive stats panel (toggled from toolbar) -->
-    <div v-if="showStats" class="absolute md:right-4 md:top-20 right-2 left-2 bottom-24 md:bottom-auto bg-base-200/90 p-2 rounded text-xs pointer-events-auto z-20">
+    <div v-if="showStats" class="absolute md:right-4 md:top-4 right-2 left-2 bottom-24 md:bottom-auto bg-base-200/90 p-2 rounded text-xs pointer-events-auto z-20">
       <div>Chunk {{ cx }}, {{ cy }}</div>
       <div>FPS {{ fps }}</div>
       <div>Coords {{ coords.x }}, {{ coords.y }}</div>
