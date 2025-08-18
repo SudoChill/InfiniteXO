@@ -10,18 +10,7 @@ export default defineEventHandler(async (event) => {
   // eslint-disable-next-line no-console
   console.log('[sessions.post] created', { id: sess.id, kind: sess.kind, cx: sess.cx, cy: sess.cy })
   bus.emit('session:create', { id: sess.id, kind: sess.kind, name: sess.name, cx: sess.cx, cy: sess.cy, width: sess.width, height: sess.height, ts: Date.now() })
-  // If exactly two members (host + second) and kind is XO, emit ready with assignments
-  if ((sess.kind === 'ttt' || sess.kind === 'xo-battle')) {
-    const members = Array.from(sess.members.values())
-    const host = sess.hostId
-    const second = members[0]
-    if (host && second) {
-      const assign: Record<string,'X'|'O'> = { }
-      assign[host] = 'X'
-      assign[second] = 'O'
-      bus.emit('session:ready', { id: sess.id, players: [host, second] as [string,string], assign, tx: (sess as any).tx || 0, ty: (sess as any).ty || 0, ts: Date.now() })
-    }
-  }
+  // Do not emit ready here; wait until a second player joins via /api/sessions-join
   return { id: sess.id }
 })
 

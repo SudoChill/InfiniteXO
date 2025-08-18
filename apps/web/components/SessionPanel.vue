@@ -100,18 +100,29 @@ const joinedFraction = computed(() => {
   const id = ui.joinedSessionId
   if (!id) return ''
   const s: any = store.sessions.get(id)
-  const members = (s && typeof s.count === 'number') ? s.count : 0
+  if (!s) return ''
+  const members = typeof s.count === 'number' ? s.count : 0
   const host = s?.hostId ? 1 : 0
-  const filled = Math.max(1, Math.min(2, members + host))
+  const total = members + host
+  if (total <= 0) return ''
+  const filled = Math.min(2, total)
   return `${filled}/2`
 })
 function filledOfTwo(s: any) {
-  const members = typeof s?.count === 'number' ? s.count : 0
+  if (!s) return ''
+  const members = typeof s.count === 'number' ? s.count : 0
   const host = s?.hostId ? 1 : 0
-  const filled = Math.max(1, Math.min(2, members + host))
+  const total = members + host
+  if (total <= 0) return ''
+  const filled = Math.min(2, total)
   return `${filled}/2`
 }
 function join(s: any) {
+  // register join on server so counts update and ready can emit
+  try {
+    session.init()
+    $fetch('/api/sessions-join', { method: 'POST', body: { id: s.id, actorId: session.actorId } })
+  } catch {}
   ui.setJoinedSession(s.id)
   // center camera to approx location
   pan.x = -(s.cx * 128 * 18) // approximate pan to chunk; will refine later if needed
